@@ -10,31 +10,74 @@ typedef struct datos{
 } Datos;
 
 typedef struct nododoble{
-    Datos paciente;
+    Datos* data;
     struct nododoble* siguiente;
     struct nododoble* anterior;
 } NodoDoble;
 
 typedef struct nodo{
-    Datos paciente;
+    Datos* data;
     struct nodo* siguiente;
 } Nodo;
 
-void leerarchivo(Nodo**, int, FILE*); /*Se lee el archivo y se agregan pacientes a la cola cada vez que el tiempo aumenta en 1 tick, para simular bien los tiempos de llegada*/
+typedef struct col{
+    Nodo* cabecera;
+    Nodo* final;
+} Cola;
+
+void validarmalloc(void*);
+void leerpacientes(FILE*, int, Nodo**); /*Se lee el archivo y se agregan pacientes a la cola cada vez que el tiempo aumenta en 1 tick, para simular bien los tiempos de llegada*/
 void apilar(Nodo**);
-void encolar(Nodo**);
-Nodo* desencolar(Nodo**); 
+void encolar(Nodo*, Cola*);
+Nodo* desencolar(Cola*); 
 
 int main(){
-    int medicos, pacientes;
+    int medicos, pacientes, tick = 0;
+    Cola* cola[4];
+    for (int i = 0; i < 4; i++){
+        cola[i] = (Cola*)malloc(sizeof(Cola));
+        validarmalloc(cola[i]);
+        cola[i]->cabecera = NULL;
+        cola[i]->final = NULL;
+    }
     FILE *entrada;
     entrada = fopen ("Entrada.txt", "r");
-    fscanf (entrada, "%d %d", &medicos, &pacientes);
+    fscanf (entrada, "%d\n%d\n", &medicos, &pacientes);
     printf ("%d %d", medicos, pacientes);
     fclose (entrada);
     return 0;
 }
 
-void leerarchivo (Nodo** cola, int tiempo, FILE* archivo){
-    
+void validarmalloc(void* puntero){
+    if (puntero == NULL){
+        printf("Error al reservar memoria\n");
+        exit(1);
+    }
+    else{
+        return;
+    }
+}
+
+void encolar(Nodo* paciente, Cola* cola){
+    paciente->siguiente = NULL;
+    if(cola->cabecera == NULL){
+        cola->cabecera = paciente;
+        cola->final = paciente;
+        return;
+    }
+    cola->final->siguiente = paciente;
+    cola->final = paciente;
+}
+
+Nodo* desencolar(Cola* cola){
+    if (cola->cabecera == NULL) return NULL;
+    else{
+        Nodo* aux = cola->cabecera;
+        cola->cabecera = cola->cabecera->siguiente;
+        if (cola->cabecera == NULL){
+            cola->final = NULL;
+        }
+        aux->siguiente = NULL;
+        return aux;
+    }   
 }
