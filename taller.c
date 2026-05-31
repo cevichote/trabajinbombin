@@ -29,7 +29,7 @@ void validarmalloc(void*);
 void leerpacientes(FILE*, int, Nodo**); /*Se lee el archivo y se agregan pacientes a la cola cada vez que el tiempo aumenta en 1 tick, para simular bien los tiempos de llegada*/
 void apilar(Nodo**);
 void encolar(Nodo*, Cola*);
-Nodo* desencolar(Cola*); 
+Nodo* desencolar(Cola*, Nodo*); 
 
 int main(){
     int medicos, pacientes, tick = 0;
@@ -69,14 +69,23 @@ void encolar(Nodo* paciente, Cola* cola){
     cola->final = paciente;
 }
 
-Nodo* desencolar(Cola* cola){
+Nodo* desencolar(Cola* cola, Nodo* paciente){
+    Nodo* aux = cola->cabecera;
+    Nodo* previo = cola->cabecera;
     if (cola->cabecera == NULL) return NULL;
+    else if(aux == paciente){
+        cola->cabecera = paciente->siguiente;
+        if(cola->cabecera == NULL) cola->final = NULL;
+        paciente->siguiente = NULL;
+        return paciente;
+    }
     else{
-        Nodo* aux = cola->cabecera;
-        cola->cabecera = cola->cabecera->siguiente;
-        if (cola->cabecera == NULL){
-            cola->final = NULL;
+        aux = aux->siguiente;
+        while(aux != paciente){
+            previo = aux;
+            aux = aux->siguiente;
         }
+        previo->siguiente = aux->siguiente;
         aux->siguiente = NULL;
         return aux;
     }   
