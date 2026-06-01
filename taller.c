@@ -4,7 +4,7 @@
 #include <time.h>
 
 typedef struct datos{
-    char* id;
+    char id[5];
     int edad, prioridad, tickllegada, ticksestimados, ticksespera;
     float p_empeorar, p_mejorar;
 } Datos;
@@ -21,7 +21,7 @@ typedef struct nodo{
 } Nodo;
 
 typedef struct CambioPrioridad {
-    char* idPaciente;
+    char idPaciente[5];
     int prioridadAnterior;
     int prioridadNueva;
 } CambioPrioridad;
@@ -54,15 +54,16 @@ void validarmalloc(void*);
 void insertarHistorial(Lista* , Nodo*);
 void encolar(Nodo*, Cola*);
 Nodo* desencolar(Cola*, Nodo*); 
-void registrarCambioPrioridad(Pila*, char*, int);
-CambioPrioridad revertirUltimoCambio(Pila *);
+void registrarCambioPrioridad(Pila*, char*, int, int);
+void revertirUltimoCambio(Pila *, Cola*[]);
 void mostrarHistorialCambios(Pila *);
 void leerdatos(Cola*, int*, int*);
 int probabilidad(Nodo*);
 void liberarLista(Lista*);
+void liberarPila(Pila* );
 
 int main(){
-    int medicos, pacientes, cambio, pacienteslistos = 0, j, k, tick = 0;
+    int medicos, pacientes, cambio, pacienteslistos = 0, i, j, k, tick = 0;
     srand(time(NULL));
     Cola* listapacientes = (Cola*)malloc(sizeof(Cola));
     validarmalloc(listapacientes);
@@ -92,7 +93,7 @@ int main(){
 
     while (1){
         Nodo* pacienteactual = listapacientes->cabecera;
-        while(pacienteactual != NULL){
+        while(pacienteactual != NULL){ /*Ciclo para simular la llegada en el tick actual*/
             Nodo* sig = pacienteactual->siguiente;
             if(pacienteactual->data->tickllegada == tick){
                 Nodo* recien_llegado = desencolar(listapacientes, pacienteactual);
@@ -101,17 +102,17 @@ int main(){
             }
             pacienteactual = sig;
         }
-        for (j = 0; j < 4; j++){
+        for (j = 0; j < 4; j++){ /*Ciclo para simular el mejoramiento o empeoramiento de pacientes*/
             pacienteactual = cola[j]->cabecera;
             if (pacienteactual != NULL){
                 while (pacienteactual != NULL){
                     k = pacienteactual->data->prioridad;
                     cambio = probabilidad(pacienteactual);
-                    if((k + cambio >= 1) && (k + cambio <= 4)){
+                    if((cambio != 0) && (k + cambio >= 1) && (k + cambio <= 4)){
                         pacienteactual->data->prioridad += cambio;
                         Nodo* aux = pacienteactual;
                         printf("tick(%d) Paciente %s cambia de prioridad %d a %d\n", tick, aux->data->id, k, aux->data->prioridad);
-                        registrarCambioPrioridad(pila, aux->data->id, k);
+                        registrarCambioPrioridad(pila, aux->data->id, k, pacienteactual->data->prioridad);
                         pacienteactual = pacienteactual->siguiente;
                         encolar(desencolar(cola[j], aux), cola[aux->data->prioridad - 1]);
                     }
@@ -121,10 +122,26 @@ int main(){
                 }
             }
         }
+        for(j = 0; j < medicos; j++){ /*Ciclo para avanzar el estado de la consulta*/
+            if(Medicos[j].pacienteactual != NULL){
+                Medicos[j].pacienteactual->data->ticksestimados--;
+                Medicos[j].duracion++;
+                /*Si la consulta acaba, se libera al medico y el paciente va al historial*/
+                if(Medicos[j].pacienteactual->data->ticksestimados <= 0){ 
+                    printf("tick(%d) El Medico %d ha terminado de atender al paciente %s\n", tick, Medicos[j].id, Medicos[j].pacienteactual->data->id);
+                    Medicos[j].pacienteactual->data->ticksespera = tick - Medicos[j].pacienteactual->data->tickllegada - Medicos[j].duracion; /*Tiempo de espera real*/
+                    insertarHistorial(&historial, Medicos[j].pacienteactual);
+                    free(Medicos[j].pacienteactual);
+                    Medicos[j].duracion = 0;
+                    Medicos[j].pacienteactual = NULL;
+                    pacienteslistos++;
+                }
+            } 
+        } 
         for(j = 0; j < medicos; j++){ /* Ciclo que pasa medico por medico confirmando si esta libre u ocupado */
             if(Medicos[j].pacienteactual == NULL){
-                for(k = 0; k < 4; k++){
-                    if(cola[k]->cabecera != NULL){
+                for(k = 0; k < 4; k++){ /*Si el medico esta libre, se busca un paciente de la mayor prioridad posible para asignarle*/
+                    if(cola[k]->cabecera != NULL){ 
                         Nodo* atendiendo = desencolar(cola[k], cola[k]->cabecera); 
                         Medicos[j].pacienteactual = atendiendo;
                         Medicos[j].duracion = 0;
@@ -134,26 +151,18 @@ int main(){
                 }
             }
         }
-        for(j = 0; j < medicos; j++){
-            if(Medicos[j].pacienteactual != NULL){
-                Medicos[j].pacienteactual->data->ticksestimados--;
-                Medicos[j].duracion++;
-                if(Medicos[j].pacienteactual->data->ticksestimados <= 0){
-                    printf("tick(%d) El Medico %d ha terminado de atender al paciente %s\n", tick, Medicos[j].id, Medicos[j].pacienteactual->data->id);
-                    Medicos[j].pacienteactual->data->ticksespera = tick - Medicos[j].pacienteactual->data->tickllegada - Medicos[j].duracion; /*Tiempo de espera real*/
-                    insertarHistorial(&historial, Medicos[j].pacienteactual);
-                    free(Medicos[j].pacienteactual);
-                    Medicos[j].duracion = 0;
-                    Medicos[j].pacienteactual = NULL;
-                    pacienteslistos++;
-                }
-            }
-        }
         if(pacienteslistos == pacientes){
             break;
         }
         tick++;
     }
+    liberarLista(&historial);
+    liberarPila(pila);
+    free(listapacientes);
+    for(i = 0; i < 4; i++){
+        free(cola[i]);
+    }
+    
     return 0;
 }
 
@@ -171,11 +180,8 @@ void leerdatos(Cola* lista, int *medicos, int* pacientes){
         validarmalloc(p);
         Datos* d = (Datos*) malloc(sizeof(Datos));
         validarmalloc(d);
-        d->id = (char*)malloc(16 * sizeof(char));
-        validarmalloc(d->id);
         int contador = fscanf(entrada, " %[^;];%d;%d;%d;%d;%f;%f\n", d->id, &d->edad, &d->prioridad, &d->tickllegada, &d->ticksestimados, &d->p_empeorar, &d->p_mejorar);
         if(contador != 7){
-            free(d->id);
             free(d);
             free(p);
             break;
@@ -261,26 +267,34 @@ void insertarHistorial(Lista* l, Nodo* paciente) {
     l->final = nuevo; 
 }
 
-void registrarCambioPrioridad(Pila *p, char* idPaciente, int prioridadAnterior) {
+void registrarCambioPrioridad(Pila *p, char* idPaciente, int prioridadAnterior, int prioridadNueva) {
     NodoPila *nuevo = (NodoPila *)malloc(sizeof(NodoPila));
     validarmalloc(nuevo);
     strcpy(nuevo->dato.idPaciente, idPaciente);
     nuevo->dato.prioridadAnterior = prioridadAnterior;
+    nuevo->dato.prioridadNueva = prioridadNueva;
     nuevo->sig = p->tope;
     p->tope = nuevo;
 }
 
-CambioPrioridad revertirUltimoCambio(Pila *p) {
-    CambioPrioridad cambio = {-1, -1, -1};
-    if (p == NULL) {
-        return cambio;
+void revertirUltimoCambio(Pila *p, Cola* cola[4]) {  
+    if (p->tope == NULL) {
+        return;  
+    }
+    Nodo* paciente = cola[p->tope->dato.prioridadNueva - 1]->cabecera;
+    while(paciente != NULL || (strcmp(paciente->data->id, p->tope->dato.idPaciente) != 0)){
+        paciente = paciente->siguiente;
+    }
+    if (paciente != NULL){
+        paciente->data->prioridad = p->tope->dato.prioridadAnterior;
+        desencolar(cola[p->tope->dato.prioridadNueva - 1], paciente);
+        encolar(paciente, cola[p->tope->dato.prioridadAnterior - 1]);
     }
     NodoPila *aux = p->tope;
-    cambio = aux->dato;
     p->tope = aux->sig;
     free(aux);
-    return cambio;
-}
+    return;
+} 
 
 void mostrarHistorialCambios(Pila *p) {
     NodoPila *aux = p->tope;
@@ -303,9 +317,19 @@ void liberarLista(Lista* l){
         NodoDoble* aux2 = aux;
         aux = aux->siguiente;
         if(aux2->data != NULL){
-            if(aux2->data->id != NULL){
-                free(aux2)
-            }
+            free(aux2->data);
         }
+        free(aux2);
+    }   
+}
+
+void liberarPila(Pila* p){
+    if(p == NULL) return;
+
+    NodoPila* aux = p->tope;
+    while(aux != NULL){
+        NodoPila* aux2 = aux;
+        aux = aux->sig;
+        free(aux2);
     }
 }
