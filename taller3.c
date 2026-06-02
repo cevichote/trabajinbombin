@@ -234,7 +234,7 @@ void revertirUltimoCambio(Pila *p, Cola* cola[4]) {  //Función que revierte el 
         paciente->data->prioridad = p->tope->dato.prioridadAnterior;
         desencolar(cola[p->tope->dato.prioridadNueva - 1], paciente);
         encolar(paciente, cola[p->tope->dato.prioridadAnterior - 1]);
-        printf("Paciente %s revierte prioridad de %d a %d\n", paciente->data->id, p->tope->dato.prioridadNueva, p->tope->dato.prioridadAnterior);
+        printf("\nPaciente %s revierte prioridad de %d a %d\n", paciente->data->id, p->tope->dato.prioridadNueva, p->tope->dato.prioridadAnterior);
     }
     NodoPila *aux = p->tope;
     p->tope = aux->sig;
@@ -282,7 +282,7 @@ void simularHospital(Cola* listapacientes, Cola* cola[], Pila* pila, medico Medi
                     if((cambio != 0) && (k + cambio >= 1) && (k + cambio <= 4)){
                         pacienteactual->data->prioridad += cambio;
                         Nodo* aux = pacienteactual;
-                        printf("tick(%d) Paciente %s cambia de prioridad %d a %d\n", tick, aux->data->id, k, aux->data->prioridad);
+                        printf("\ntick(%d) Paciente %s cambia de prioridad %d a %d\n", tick, aux->data->id, k, aux->data->prioridad);
                         registrarCambioPrioridad(pila, aux->data->id, k, pacienteactual->data->prioridad);
                         pacienteactual = pacienteactual->siguiente;
                         encolar(desencolar(cola[j], aux), cola[aux->data->prioridad - 1]);
@@ -298,7 +298,7 @@ void simularHospital(Cola* listapacientes, Cola* cola[], Pila* pila, medico Medi
                 Medicos[j].pacienteactual->data->ticksestimados--;
                 Medicos[j].duracion++;
                 if(Medicos[j].pacienteactual->data->ticksestimados <= 0){
-                    printf("tick(%d) El Medico %d ha terminado de atender al paciente %s\n", tick, Medicos[j].id, Medicos[j].pacienteactual->data->id);
+                    printf("\ntick(%d) El Medico %d ha terminado de atender al paciente %s\n", tick, Medicos[j].id, Medicos[j].pacienteactual->data->id);
                     Medicos[j].pacienteactual->data->ticksespera = tick - Medicos[j].pacienteactual->data->tickllegada - Medicos[j].duracion;
                     insertarHistorial(historial, Medicos[j].pacienteactual);
                     free(Medicos[j].pacienteactual);
@@ -315,7 +315,7 @@ void simularHospital(Cola* listapacientes, Cola* cola[], Pila* pila, medico Medi
                         Nodo* atendiendo = desencolar(cola[k], cola[k]->cabecera);
                         Medicos[j].pacienteactual = atendiendo;
                         Medicos[j].duracion = 0;
-                        printf("tick(%d) Medico %d esta atendiendo a paciente %s con prioridad %d\n", tick, Medicos[j].id, atendiendo->data->id, atendiendo->data->prioridad);
+                        printf("\ntick(%d) Medico %d esta atendiendo a paciente %s con prioridad %d\n", tick, Medicos[j].id, atendiendo->data->id, atendiendo->data->prioridad);
                         break;
                     }
                 }
@@ -386,6 +386,7 @@ void calcularMetricas(Lista* historial){ // Función que calcula las metricas pe
         }
         aux = aux->siguiente;
     }
+    printf("\n ===== METRICAS ===== \n");
     for(i = 0; i < 4; i++){
         if(pacientes_por_prioridad[i] > 0){
             tesp = sumatiempo_espera[i];
